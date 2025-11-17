@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { checkInteractions } from '../utils/checkInteraction.js';
@@ -19,7 +19,8 @@ export default function HomeScreen({ navigation }) {
 
     // Search data for interactions
     console.log("Checking data...");
-    const found = await checkInteractions(drug1);
+    //const found = await checkInteractions(drug1);
+    const found = null;
     setResults(found);
     console.log(found);
     console.log('Found results type:', typeof found);
@@ -28,26 +29,44 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('Result', { drug1, drug2, results: found });
 
   };
-    // Mock delay and fake result
-    // const result = await new Promise((resolve) =>
-    //   setTimeout(
-    //     () =>
-    //       resolve({
-    //         risk: 'Moderate',
-    //         description: `Combining ${drug1} and ${drug2} may increase drowsiness.`,
-    //       }),
-    //     800
-    //   )
-    // );
-    // navigation.navigate('Result', { drug1, drug2, found });
-  //};
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
+  // get the logo depending on the current platform
   const logoSource = Platform.OS === 'web' ? { uri: '/adaptive-icon.png' } : require('../assets/adaptive-icon.png');
 
+  const mockCardData = [
+  {
+    id: '1',
+    date: '2025-11-15',
+    quantity: 3,
+    description: 'Whiskey Coke',
+  },
+  {
+    id: '2',
+    date: '2025-11-16',
+    quantity: 2,
+    description: 'Gin & Tonic',
+  },
+  {
+    id: '3',
+    date: '2025-11-16',
+    quantity: 1,
+    description: 'Pinot grigio',
+  },
+  {
+    id: '4',
+    date: '2025-11-17',
+    quantity: 4,
+    description: 'Hazy IPA',
+  },
+];
+
+  //------------------------------------------------------------------------------------------
+  // Function: useEffect
+  // Description:  Used to get the username on load
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -98,45 +117,88 @@ export default function HomeScreen({ navigation }) {
     });
   }, [navigation, username]);
 
+  const renderCard = ({ item }) => (
+    <View style={styles.card}>
+      <Text>{item.title}</Text>
+      <Text>{item.description}</Text>
+    </View>
+  );
+
   //------------------------------------------------------------------------------------------
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Check Interactions</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="First Drug"
-        value={drug1}
-        onChangeText={setDrug1}
-      />
-      <Ionicons name="add-circle-outline" size={32} color="#9c31ff" style={styles.icon} />
-      <TextInput
-        style={[styles.input, { marginBottom: 40 }]}
-        placeholder="Second Drug"
-        value={drug2}
-        onChangeText={setDrug2}
-      />
+    
+    <FlatList
+      data={mockCardData}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={renderCard}
+      contentContainerStyle={{ padding: 16 }}
+      ListHeaderComponent={
+        <View style={styles.topContainer}>
+          <Text style={styles.title}>Header / Stats / Info</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="First Drug"
+            value={drug1}
+            onChangeText={setDrug1}
+          />
+          <Ionicons name="add-circle-outline" size={32} color="#9c31ff" style={styles.icon} />
+          <TextInput
+            style={[styles.input, { marginBottom: 40 }]}
+            placeholder="Second Drug"
+            value={drug2}
+            onChangeText={setDrug2}
+          />
 
-      <Pressable 
-        style={({ pressed }) => [
-          styles.button,
-          pressed && styles.buttonPressed,
-        ]} 
-        onPress={mockCheckInteraction}
-        >
-        <Text style={styles.buttonText}>Check for Interactions</Text>
-      </Pressable>    
-      
-      <View style={{ marginTop: 10 }} />
-      <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
-        <Text style={styles.buttonText}>View History</Text>
-      </Pressable>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]} 
+            onPress={mockCheckInteraction}
+            >
+            <Text style={styles.buttonText}>Check for Interactions</Text>
+          </Pressable>    
+          
+          <View style={{ marginTop: 100 }} />
+          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
+            <Text style={styles.buttonText}>View History</Text>
+          </Pressable>
+            
+          <View style={{ marginTop: 100 }} />
+          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
+            <Text style={styles.buttonText}>View History</Text>
+          </Pressable>
+          <View style={{ marginTop: 100 }} />
+          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
+            <Text style={styles.buttonText}>View History</Text>
+          </Pressable>
+          <View style={{ marginTop: 100 }} />
+          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
+            <Text style={styles.buttonText}>View History</Text>
+          </Pressable>
+          {/* <View style={{ marginTop: 10 }} />
+          <Pressable style={styles.signOutButton} onPress={signOut}>
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </Pressable> */}
+        </View>
+      }
+      showsVerticalScrollIndicator={false}
+    />
+      // <View style={styles.container}>
+      //   {/* <Text style={styles.title}>Check Interactions</Text> */}
         
-      {/* <View style={{ marginTop: 10 }} />
-      <Pressable style={styles.signOutButton} onPress={signOut}>
-        <Text style={styles.signOutButtonText}>Sign Out</Text>
-      </Pressable> */}
-      
-    </View>
+      //   {/* Bottom list of cards */}
+      //   <View style={styles.cardList}>
+      //     {data.map((item, index) => (
+      //       <View key={index} style={styles.card}>
+      //         <Text>{item.title}</Text>
+      //         <Text>{item.description}</Text>
+      //       </View>
+      //     ))}
+      //   </View>
+      // </View>
+    
+    
   );
 }
 
@@ -148,11 +210,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 20,
   },
+  scrollContainer: {
+    padding: 16,
+    // Makes the scroll content stretch full width
+  },
   title: {
     fontSize: 22,
     marginBottom: 20,
     marginTop: 20,
     color: '#45474C',
+  },
+  topContainer: {
+    marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
   },
   input: {
     width: '80%',
@@ -203,5 +283,23 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     opacity: 0.7,
-  }
+  },
+  topContainer: {
+    marginBottom: 16,
+    // Any styling for your top container
+  },
+  cardList: {
+    // Optional spacing between cards
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
+  },
 });
