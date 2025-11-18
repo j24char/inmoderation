@@ -1,43 +1,11 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { Alert, FlatList, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { checkInteractions } from '../utils/checkInteraction.js';
 
-export default function HomeScreen({ navigation }) {
-  const [drug1, setDrug1] = useState('');
-  const [drug2, setDrug2] = useState('');
-  const [userIdShort, setUserIdShort] = useState('');
-  const [username, setUsername] = useState('');
-  const [results, setResults] = useState('');
-
-  const mockCheckInteraction = async () => {
-    if (!drug1.trim() || !drug2.trim()) {
-      Alert.alert('Missing Input', 'Please enter values for both fields before continuing.');
-      return; // stop navigation
-    }
-
-    // Search data for interactions
-    console.log("Checking data...");
-    //const found = await checkInteractions(drug1);
-    const found = null;
-    setResults(found);
-    console.log(found);
-    console.log('Found results type:', typeof found);
-    console.log('Found results:', found);
-
-    navigation.navigate('Result', { drug1, drug2, results: found });
-
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  // get the logo depending on the current platform
-  const logoSource = Platform.OS === 'web' ? { uri: '/adaptive-icon.png' } : require('../assets/adaptive-icon.png');
-
-  const mockCardData = [
+// Mock card data placed at module scope so it can be used as the initial state
+const mockCardData = [
   {
     id: '1',
     date: '2025-11-15',
@@ -63,6 +31,74 @@ export default function HomeScreen({ navigation }) {
     description: 'Hazy IPA',
   },
 ];
+
+export default function HomeScreen({ navigation }) {
+  const [drug1, setDrug1] = useState('');
+  const [drug2, setDrug2] = useState('');
+  const [userIdShort, setUserIdShort] = useState('');
+  const [username, setUsername] = useState('');
+  const [results, setResults] = useState('');
+
+  const [cards, setCards] = useState(mockCardData);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+
+  // get the logo depending on the current platform
+  const logoSource = Platform.OS === 'web' ? { uri: '/adaptive-icon.png' } : require('../assets/adaptive-icon.png');
+
+  // Open modal with selected card
+  const handleCardPress = (card) => {
+    setSelectedCard(card);
+    setModalVisible(true);
+  };
+
+  
+
+  // Save changes in modal
+  const handleSave = () => {
+    setCards((prevCards) => {
+      if (!selectedCard) return prevCards;
+      const exists = prevCards.some((c) => c.id === selectedCard.id);
+      if (exists) {
+        return prevCards.map((c) => (c.id === selectedCard.id ? selectedCard : c));
+      }
+      // Prepend new card
+      return [selectedCard, ...prevCards];
+    });
+    setModalVisible(false);
+    setSelectedCard(null);
+  };
+
+  const mockCheckInteraction = async () => {
+    if (!drug1.trim() || !drug2.trim()) {
+      Alert.alert('Missing Input', 'Please enter values for both fields before continuing.');
+      return; // stop navigation
+    }
+    // Search data for interactions
+    console.log("Checking data...");
+    //const found = await checkInteractions(drug1);
+    const found = null;
+    setResults(found);
+    navigation.navigate('Result', { drug1, drug2, results: found });
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  //------------------------------------------------------------------------------------------
+  // Function: addDrink
+  // Description:  Add drink and update database
+  const addDrink = async () => {
+    const newCard = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().slice(0, 10), // yyyy-mm-dd
+      quantity: 1,
+      description: '',
+    };
+    setSelectedCard(newCard);
+    setModalVisible(true);
+  }
 
   //------------------------------------------------------------------------------------------
   // Function: useEffect
@@ -126,79 +162,106 @@ export default function HomeScreen({ navigation }) {
 
   //------------------------------------------------------------------------------------------
   return (
-    
-    <FlatList
-      data={mockCardData}
-      keyExtractor={(item, index) => index.toString()}
-      renderItem={renderCard}
-      contentContainerStyle={{ padding: 16 }}
-      ListHeaderComponent={
-        <View style={styles.topContainer}>
-          <Text style={styles.title}>Header / Stats / Info</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="First Drug"
-            value={drug1}
-            onChangeText={setDrug1}
-          />
-          <Ionicons name="add-circle-outline" size={32} color="#9c31ff" style={styles.icon} />
-          <TextInput
-            style={[styles.input, { marginBottom: 40 }]}
-            placeholder="Second Drug"
-            value={drug2}
-            onChangeText={setDrug2}
-          />
+    <View>
+      <FlatList
+        data={cards}
+        ListHeaderComponent={
+          <View style={styles.topContainer}>
+            <Text style={styles.title}>Header / Stats / Info</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="First Drug"
+              value={drug1}
+              onChangeText={setDrug1}
+            />
+            <Ionicons name="add-circle-outline" size={32} color="#9c31ff" style={styles.icon} />
+            <TextInput
+              style={[styles.input, { marginBottom: 40 }]}
+              placeholder="Second Drug"
+              value={drug2}
+              onChangeText={setDrug2}
+            />
 
-          <Pressable 
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]} 
-            onPress={mockCheckInteraction}
-            >
-            <Text style={styles.buttonText}>Check for Interactions</Text>
-          </Pressable>    
-          
-          <View style={{ marginTop: 100 }} />
-          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
-            <Text style={styles.buttonText}>View History</Text>
-          </Pressable>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.buttonPressed,
+              ]} 
+              onPress={mockCheckInteraction}
+              >
+              <Text style={styles.buttonText}>Check for Interactions</Text>
+            </Pressable>    
             
-          <View style={{ marginTop: 100 }} />
-          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
-            <Text style={styles.buttonText}>View History</Text>
-          </Pressable>
-          <View style={{ marginTop: 100 }} />
-          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
-            <Text style={styles.buttonText}>View History</Text>
-          </Pressable>
-          <View style={{ marginTop: 100 }} />
-          <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
-            <Text style={styles.buttonText}>View History</Text>
-          </Pressable>
-          {/* <View style={{ marginTop: 10 }} />
-          <Pressable style={styles.signOutButton} onPress={signOut}>
-            <Text style={styles.signOutButtonText}>Sign Out</Text>
-          </Pressable> */}
+            <View style={{ marginTop: 10 }} />
+            <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
+              <Text style={styles.buttonText}>View History</Text>
+            </Pressable>
+              
+            <View style={{ marginTop: 10 }} />
+            <Pressable style={styles.button} onPress={addDrink}>
+              <Text style={styles.buttonText}>Add Drink</Text>
+            </Pressable>
+          </View>
+        }
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => handleCardPress(item)}
+          >
+            <Text style={styles.cardDate}>{item.date}</Text>
+            <Text>Quantity: {item.quantity}</Text>
+            <Text>Description: {item.description}</Text>
+          </TouchableOpacity>
+        )}
+      />
+    
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Record</Text>
+
+            <Text>Date:</Text>
+            <TextInput
+              style={styles.input}
+              value={selectedCard?.date || ''}
+              onChangeText={(text) =>
+                setSelectedCard({ ...selectedCard, date: text })
+              }
+            />
+
+            <Text>Quantity:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={selectedCard?.quantity !== undefined ? String(selectedCard.quantity) : ''}
+              onChangeText={(text) =>
+                setSelectedCard({ ...selectedCard, quantity: parseInt(text) || 0 })
+              }
+            />
+
+            <Text>Description:</Text>
+            <TextInput
+              style={styles.input}
+              value={selectedCard?.description || ''}
+              onChangeText={(text) =>
+                setSelectedCard({ ...selectedCard, description: text })
+              }
+            />
+
+            <View style={styles.modalButtons}>
+              <Button title="Save" onPress={handleSave} />
+              <Button title="Cancel" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
         </View>
-      }
-      showsVerticalScrollIndicator={false}
-    />
-      // <View style={styles.container}>
-      //   {/* <Text style={styles.title}>Check Interactions</Text> */}
-        
-      //   {/* Bottom list of cards */}
-      //   <View style={styles.cardList}>
-      //     {data.map((item, index) => (
-      //       <View key={index} style={styles.card}>
-      //         <Text>{item.title}</Text>
-      //         <Text>{item.description}</Text>
-      //       </View>
-      //     ))}
-      //   </View>
-      // </View>
-    
-    
+      </Modal>
+    </View>
   );
 }
 
@@ -222,6 +285,7 @@ const styles = StyleSheet.create({
   },
   topContainer: {
     marginBottom: 16,
+    alignItems: 'center',
   },
   card: {
     backgroundColor: '#fff',
@@ -287,6 +351,7 @@ const styles = StyleSheet.create({
   topContainer: {
     marginBottom: 16,
     // Any styling for your top container
+    alignItems: 'center',
   },
   cardList: {
     // Optional spacing between cards
@@ -300,6 +365,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    elevation: 3, // Android shadow
+    elevation: 3,
+  },
+  cardDate: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
