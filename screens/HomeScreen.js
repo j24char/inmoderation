@@ -1,32 +1,34 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { checkInteractions } from '../utils/checkInteraction.js';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Mock card data placed at module scope so it can be used as the initial state
 const mockCardData = [
   {
     id: '1',
-    date: '2025-11-15',
+    // ISO 8601 datetime compatible with Supabase timestamp/datetime
+    date: '2025-11-15T00:00:00Z',
     quantity: 3,
     description: 'Whiskey Coke',
   },
   {
     id: '2',
-    date: '2025-11-16',
+    date: '2025-11-16T00:00:00Z',
     quantity: 2,
     description: 'Gin & Tonic',
   },
   {
     id: '3',
-    date: '2025-11-16',
+    date: '2025-11-16T00:00:00Z',
     quantity: 1,
     description: 'Pinot grigio',
   },
   {
     id: '4',
-    date: '2025-11-17',
+    date: '2025-11-17T00:00:00Z',
     quantity: 4,
     description: 'Hazy IPA',
   },
@@ -42,6 +44,7 @@ export default function HomeScreen({ navigation }) {
   const [cards, setCards] = useState(mockCardData);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // get the logo depending on the current platform
   const logoSource = Platform.OS === 'web' ? { uri: '/adaptive-icon.png' } : require('../assets/adaptive-icon.png');
@@ -209,7 +212,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.card}
             onPress={() => handleCardPress(item)}
           >
-            <Text style={styles.cardDate}>{item.date}</Text>
+            <Text style={styles.cardDate}>{item.date ? new Date(item.date).toLocaleDateString() : ''}</Text>
             <Text>Quantity: {item.quantity}</Text>
             <Text>Description: {item.description}</Text>
           </TouchableOpacity>
@@ -222,44 +225,70 @@ export default function HomeScreen({ navigation }) {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Record</Text>
+        <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.modalKeyboardAvoid}
+            >
+              <View style={[styles.modalContent, showDatePicker && styles.modalContentWithPicker]}>
+                <Text style={styles.modalTitle}>Edit Record</Text>
 
-            <Text>Date:</Text>
-            <TextInput
-              style={styles.input}
-              value={selectedCard?.date || ''}
-              onChangeText={(text) =>
-                setSelectedCard({ ...selectedCard, date: text })
-              }
-            />
+                    <Text style={{ marginBottom: 6 }}>Date:</Text>
+                    <Pressable
+                      style={[styles.input, { justifyContent: 'center' }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text>{selectedCard?.date ? new Date(selectedCard.date).toLocaleDateString() : 'Select date'}</Text>
+                    </Pressable>
+                    {showDatePicker && (
+                      <View style={styles.pickerWrapper}>
+                        <DateTimePicker
+                          value={selectedCard?.date ? new Date(selectedCard.date) : new Date()}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                          onChange={(event, picked) => {
+                            // On Android, event.type === 'dismissed' when canceled
+                            if (event?.type === 'dismissed') {
+                              setShowDatePicker(false);
+                              return;
+                            }
+                            const chosen = picked || new Date();
+                            setSelectedCard({ ...selectedCard, date: chosen.toISOString() });
+                            setShowDatePicker(false);
+                          }}
+                          {...(Platform.OS === 'ios' ? { textColor: '#000' } : {})}
+                        />
+                      </View>
+                    )}
 
-            <Text>Quantity:</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={selectedCard?.quantity !== undefined ? String(selectedCard.quantity) : ''}
-              onChangeText={(text) =>
-                setSelectedCard({ ...selectedCard, quantity: parseInt(text) || 0 })
-              }
-            />
+                <Text>Quantity:</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={selectedCard?.quantity !== undefined ? String(selectedCard.quantity) : ''}
+                  onChangeText={(text) =>
+                    setSelectedCard({ ...selectedCard, quantity: parseInt(text) || 0 })
+                  }
+                />
 
-            <Text>Description:</Text>
-            <TextInput
-              style={styles.input}
-              value={selectedCard?.description || ''}
-              onChangeText={(text) =>
-                setSelectedCard({ ...selectedCard, description: text })
-              }
-            />
+                <Text>Description:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={selectedCard?.description || ''}
+                  onChangeText={(text) =>
+                    setSelectedCard({ ...selectedCard, description: text })
+                  }
+                />
 
-            <View style={styles.modalButtons}>
-              <Button title="Save" onPress={handleSave} />
-              <Button title="Cancel" onPress={() => setModalVisible(false)} />
-            </View>
+                <View style={styles.modalButtons}>
+                  <Button title="Save" onPress={handleSave} />
+                  <Button title="Cancel" onPress={() => { setModalVisible(false); setSelectedCard(null); }} />
+                </View>
+              </View>
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -348,11 +377,6 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.7,
   },
-  topContainer: {
-    marginBottom: 16,
-    // Any styling for your top container
-    alignItems: 'center',
-  },
   cardList: {
     // Optional spacing between cards
   },
@@ -366,6 +390,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 3,
+    // Keep cards inset from screen edges
+    marginHorizontal: 16,
+    alignSelf: 'center',
+    width: '92%',
   },
   cardDate: {
     fontWeight: 'bold',
@@ -376,6 +404,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalKeyboardAvoid: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContentWithPicker: {
+    backgroundColor: '#f0f4f8',
+  },
+  pickerWrapper: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    paddingVertical: 8,
+    // ensure picker sits visually separate
+    marginTop: 8,
   },
   modalContent: {
     width: '85%',
