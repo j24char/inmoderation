@@ -3,6 +3,7 @@ import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet,
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { checkInteractions } from '../utils/checkInteraction.js';
+import { processDailyTotals, averageLast7Days } from '../utils/dataUtils';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Mock card data placed at module scope so it can be used as the initial state
@@ -55,7 +56,13 @@ export default function HomeScreen({ navigation }) {
     setModalVisible(true);
   };
 
-  
+  // Calculate stats from cards
+  const stats = React.useMemo(() => {
+    const processed = processDailyTotals(cards || []);
+    const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    const avg7 = averageLast7Days(processed);
+    return { total, avg7 };
+  }, [cards]);
 
   // Save changes in modal
   const handleSave = () => {
@@ -170,6 +177,16 @@ export default function HomeScreen({ navigation }) {
         data={cards}
         ListHeaderComponent={
           <View style={styles.topContainer}>
+            <View style={styles.statRow}>
+              <View style={[styles.statCard, { marginRight: 8 }]}>
+                <Text style={styles.statTitle}>Total Drinks</Text>
+                <Text style={styles.statValue}>{stats.total}</Text>
+              </View>
+              <View style={[styles.statCard, { marginLeft: 8 }]}>
+                <Text style={styles.statTitle}>7-day Avg</Text>
+                <Text style={styles.statValue}>{Number.isFinite(stats.avg7) ? stats.avg7.toFixed(1) : '0.0'}</Text>
+              </View>
+            </View>
             <Text style={styles.title}>Header / Stats / Info</Text>
             <TextInput
               style={styles.input}
@@ -190,15 +207,9 @@ export default function HomeScreen({ navigation }) {
                 styles.button,
                 pressed && styles.buttonPressed,
               ]} 
-              onPress={mockCheckInteraction}
-              >
-              <Text style={styles.buttonText}>Check for Interactions</Text>
-            </Pressable>    
-            
-            <View style={{ marginTop: 10 }} />
-            <Pressable style={styles.button} onPress={() => navigation.navigate('History')}>
+              onPress={() => navigation.navigate('History')}>
               <Text style={styles.buttonText}>View History</Text>
-            </Pressable>
+            </Pressable>    
               
             <View style={{ marginTop: 10 }} />
             <Pressable style={styles.button} onPress={addDrink}>
@@ -435,5 +446,32 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  statRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'center',
+    marginBottom: 12,
+    paddingTop: 8,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fafafa',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 220,
+  },
+  statTitle: {
+    fontSize: 12,
+    color: '#777',
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
   },
 });
