@@ -7,33 +7,33 @@ import { processDailyTotals, averageLast7Days } from '../utils/dataUtils';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Mock card data placed at module scope so it can be used as the initial state
-const mockCardData = [
-  {
-    id: '1',
-    // ISO 8601 datetime compatible with Supabase timestamp/datetime
-    date: '2025-11-15T00:00:00Z',
-    quantity: 3,
-    description: 'Whiskey Coke',
-  },
-  {
-    id: '2',
-    date: '2025-11-16T00:00:00Z',
-    quantity: 2,
-    description: 'Gin & Tonic',
-  },
-  {
-    id: '3',
-    date: '2025-11-16T00:00:00Z',
-    quantity: 1,
-    description: 'Pinot grigio',
-  },
-  {
-    id: '4',
-    date: '2025-11-17T00:00:00Z',
-    quantity: 4,
-    description: 'Hazy IPA',
-  },
-];
+// const mockCardData = [
+//   {
+//     id: '1',
+//     // ISO 8601 datetime compatible with Supabase timestamp/datetime
+//     date: '2025-11-15T00:00:00Z',
+//     quantity: 3,
+//     description: 'Whiskey Coke',
+//   },
+//   {
+//     id: '2',
+//     date: '2025-11-16T00:00:00Z',
+//     quantity: 2,
+//     description: 'Gin & Tonic',
+//   },
+//   {
+//     id: '3',
+//     date: '2025-11-16T00:00:00Z',
+//     quantity: 1,
+//     description: 'Pinot grigio',
+//   },
+//   {
+//     id: '4',
+//     date: '2025-11-17T00:00:00Z',
+//     quantity: 4,
+//     description: 'Hazy IPA',
+//   },
+// ];
 
 export default function HomeScreen({ navigation }) {
   const [drug1, setDrug1] = useState('');
@@ -42,7 +42,7 @@ export default function HomeScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [results, setResults] = useState('');
 
-  const [cards, setCards] = useState(mockCardData);
+  const [cards, setCards] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -65,18 +65,72 @@ export default function HomeScreen({ navigation }) {
   }, [cards]);
 
   // Save changes in modal
-  const handleSave = () => {
-    setCards((prevCards) => {
-      if (!selectedCard) return prevCards;
-      const exists = prevCards.some((c) => c.id === selectedCard.id);
-      if (exists) {
-        return prevCards.map((c) => (c.id === selectedCard.id ? selectedCard : c));
-      }
-      // Prepend new card
-      return [selectedCard, ...prevCards];
-    });
-    setModalVisible(false);
-    setSelectedCard(null);
+  // const handleSave = () => {
+  //   setCards((prevCards) => {
+  //     if (!selectedCard) return prevCards;
+  //     const exists = prevCards.some((c) => c.id === selectedCard.id);
+  //     if (exists) {
+  //       return prevCards.map((c) => (c.id === selectedCard.id ? selectedCard : c));
+  //     }
+  //     // Prepend new card
+  //     return [selectedCard, ...prevCards];
+  //   });
+  //   setModalVisible(false);
+  //   setSelectedCard(null);
+  // };
+  const handleSave = async () => {
+    if (!selectedCard) return;
+
+    // 1. Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        Alert.alert('Error', 'You must be logged in to save drinks.');
+        return;
+    }
+
+    // Prepare data for Supabase
+    const drinkData = {
+        user_id: user.id,
+        drink_count: Number(selectedCard.quantity),
+        drink_date: selectedCard.date.slice(0, 10), // Ensure format is YYYY-MM-DD
+        notes: selectedCard.description,
+    };
+
+    setModalVisible(false); // Close modal right away
+
+    try {
+        // Check if this is an existing card (has a database ID) or a new one
+        const isExisting = cards.some(c => c.id === selectedCard.id && c.id.length < 15); // Simple check for database ID vs temporary Date.now() ID
+
+        if (isExisting) {
+            // UPDATE existing record
+            const { error } = await supabase
+                .from('drinks')
+                .update(drinkData)
+                .eq('id', selectedCard.id);
+
+            if (error) throw error;
+            Alert.alert('Success', 'Drink record updated!');
+        } else {
+            // INSERT new record
+            // The table must have a default ID (like a UUID) for this to work
+            const { error } = await supabase
+                .from('drinks')
+                .insert([drinkData]);
+
+            if (error) throw error;
+            Alert.alert('Success', 'New drink logged!');
+        }
+        
+        // After successful save, refresh the list from the database
+        await fetchDrinks();
+
+    } catch (error) {
+        console.error('Database Operation Error:', error);
+        Alert.alert('Error', `Failed to save drink: ${error.message}`);
+    } finally {
+        setSelectedCard(null);
+    }
   };
 
   const mockCheckInteraction = async () => {
@@ -109,6 +163,59 @@ export default function HomeScreen({ navigation }) {
     setSelectedCard(newCard);
     setModalVisible(true);
   }
+
+  //------------------------------------------------------------------------------------------
+  // Function: fetchDrinks
+  // Description:  Fetches the active user's drink data from Supabase and updates state
+  const fetchDrinks = async () => {
+      // Get the current active user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+          console.warn("No active user found. Cannot fetch drinks.");
+          return;
+      }
+
+      try {
+          const { data, error } = await supabase
+              .from("drinks")
+              .select("id, drink_count, drink_date, notes")
+              .eq("user_id", user.id)
+              .order("drink_date", { ascending: false }); // Order from newest to oldest
+
+          if (error) throw error;
+
+          // Map the Supabase data structure to the component's expected 'card' structure
+          const mappedData = data.map(item => ({
+              // Use the database row ID if available, otherwise fallback to generating one
+              id: item.id.toString(),
+              // Map 'drink_date' to 'date'
+              date: item.drink_date,
+              // Map 'drink_count' to 'quantity'
+              quantity: item.drink_count,
+              // Map 'notes' to 'description'. Use an empty string if notes is null
+              description: item.notes || '',
+          }));
+
+          setCards(mappedData);
+
+      } catch (error) {
+          console.error('Error fetching drinks:', error);
+          // Optionally show an alert to the user
+          // Alert.alert('Data Error', 'Failed to load drink history.');
+      }
+  };
+
+  const refreshDrinks = () => {
+    fetchDrinks();
+  };
+
+  //------------------------------------------------------------------------------------------
+  // Function: useEffect - Fetch Drinks
+  // Description:  Call fetchDrinks on load and whenever a new drink is logged (if you add a refresh trigger)
+  useEffect(() => {
+      fetchDrinks();
+  }, []); // Empty dependency array means it runs once on mount.
 
   //------------------------------------------------------------------------------------------
   // Function: useEffect
