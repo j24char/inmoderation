@@ -36,6 +36,9 @@ export default function HomeScreen({ navigation }) {
     return { total, avg7 };
   }, [cards]);
 
+  //------------------------------------------------------------------------------------------
+  // Function: handleSave
+  // Description:  Updates the database 
   const handleSave = async () => {
     if (!selectedCard) return;
 
@@ -92,6 +95,9 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  //------------------------------------------------------------------------------------------
+  // Function: signOut
+  // Description:  Signs the user out from authenticated database connection
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -152,10 +158,6 @@ export default function HomeScreen({ navigation }) {
       }
   };
 
-  const refreshDrinks = () => {
-    fetchDrinks();
-  };
-
   //------------------------------------------------------------------------------------------
   // Function: useEffect - Fetch Drinks
   // Description:  Call fetchDrinks on load and whenever a new drink is logged (if you add a refresh trigger)
@@ -200,21 +202,31 @@ export default function HomeScreen({ navigation }) {
   // Description:  Used to add logo and username to navigation bar on home
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '',
-      headerLeft: () => (
-        <Image
-          source={logoSource}
-          style={{ width: 40, height: 40, marginLeft: 16 }}
-          resizeMode="contain"
-        />
-      ),
-      headerRight: () => (
-        <Text style={{ marginRight: 16, fontWeight: 'bold', color: '#9c31ff' }}>
-          {username ? `@${username}` : ''}
-        </Text>
-      ),
+        headerTitle: '',
+        headerLeft: () => (
+            <Image
+                source={logoSource}
+                style={{ width: 40, height: 40, marginLeft: 16 }}
+                resizeMode="contain"
+            />
+        ),
+        headerRight: () => (
+            <Pressable 
+                // Ensure there is a username before allowing navigation
+                onPress={() => username ? navigation.navigate('Profile') : null} 
+                style={({ pressed }) => ({
+                    opacity: pressed ? 0.6 : 1, // Simple press feedback
+                    marginRight: 16,
+                    padding: 4, // Make the touch area slightly larger
+                })}
+            >
+                <Text style={{ fontWeight: 'bold', color: '#9c31ff' }}>
+                    {username ? `@${username}` : ''}
+                </Text>
+            </Pressable>
+        ),
     });
-  }, [navigation, username]);
+  }, [navigation, username, logoSource]);
 
   //------------------------------------------------------------------------------------------
   return (
