@@ -216,13 +216,6 @@ export default function HomeScreen({ navigation }) {
     });
   }, [navigation, username]);
 
-  const renderCard = ({ item }) => (
-    <View style={styles.card}>
-      <Text>{item.title}</Text>
-      <Text>{item.description}</Text>
-    </View>
-  );
-
   //------------------------------------------------------------------------------------------
   return (
     <View>
