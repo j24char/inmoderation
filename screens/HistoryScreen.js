@@ -26,8 +26,8 @@ export default function HistoryScreen({navigation}) {
           }
           style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 }}
         >
-          <Ionicons name="chevron-back" size={24} color="#36ada7" />
-          <Text style={{ color: '#36ada7', fontSize: 16 }}>Home</Text>
+          <Ionicons name="chevron-back" size={24} color="#9c31ff" />
+          <Text style={{ color: '#9c31ff', fontSize: 16 }}>Home</Text>
         </Pressable>
       ),
     });
@@ -38,12 +38,19 @@ export default function HistoryScreen({navigation}) {
   // Description:  Gets all the user's stored interaction history data
   const fetchHistory = async () => {
     const user = (await supabase.auth.getUser()).data.user;
+    //console.log("User ID: ", user.id);
     const { data, error } = await supabase
-      .from('interaction_history')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (!error) setHistory(data);
+      .from("drinks")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("drink_date", { ascending: true });
+    const normalizedData = data.map(d => ({
+      ...d,
+      // This safely extracts only the date part (YYYY-MM-DD) from the database timestamp string
+      drink_date: d.drink_date ? d.drink_date.slice(0, 10) : ''
+    }));
+    if (!error) setHistory(normalizedData);
+    console.log("normalized Data: ", normalizedData);
   };
 
   //------------------------------------------------------------------------------------------
@@ -51,9 +58,9 @@ export default function HistoryScreen({navigation}) {
   // Description:  Displays one (indexed by item) of user's interaction history data entry
   const renderItem = ({ item }) => (
     <View style={styles.item}>
-      <Text style={styles.drugs}>{item.drug1} + {item.drug2}</Text>
-      <Text style={styles.result}>Risk: {item.result}</Text>
-      <Text style={styles.desc}>{item.description}</Text>
+      <Text style={styles.cardDate}>{item.drink_date}</Text>
+      <Text>Quantity: {item.drink_count}</Text>
+      <Text>Description: {item.notes}</Text>
     </View>
   );
 
@@ -81,9 +88,9 @@ export default function HistoryScreen({navigation}) {
               
               // Delete only this user’s records
               const { error } = await supabase
-                .from('interaction_history') // <-- replace with your actual table
+                .from("drinks") 
                 .delete()
-                .eq('user_id', userId);
+                .eq("user_id", userId);
 
               if (error) throw error;
 
@@ -104,7 +111,7 @@ export default function HistoryScreen({navigation}) {
   //------------------------------------------------------------------------------------------
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Interaction History</Text>
+      <Text style={styles.title}>Drink History</Text>
       <FlatList
         data={history}
         keyExtractor={(item) => item.id}
@@ -133,7 +140,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#e0f2f1',
+    backgroundColor: '#f4f4f4ff',
   },
   title: {
     fontSize: 22,
@@ -150,10 +157,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
   },
-  drugs: { fontWeight: 'bold' },
-  result: { color: '#00796b' },
   desc: { color: '#555' },
-  buttonWrapper: {
+    buttonWrapper: {
     marginTop: 30,
     alignItems: 'center',
   },
@@ -170,6 +175,25 @@ const styles = StyleSheet.create({
     elevation: 2,
     width: '80%',
     maxWidth: 300,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+    // Keep cards inset from screen edges
+    marginHorizontal: 16,
+    alignSelf: 'center',
+    width: '92%',
+  },
+  cardDate: {
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   buttonText: {
     color: '#ffffff',
