@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons'; // Import icons for better UX
+import * as ImagePicker from 'expo-image-picker'; 
 
 // Define a simple local placeholder source
 const DEFAULT_PLACEHOLDER = { uri: Platform.OS === 'web' ? '/icon.png' : require('../assets/icon.png') };
@@ -45,37 +46,120 @@ export default function ProfileScreen({ navigation }) {
     }, [avatarUrl]);
 
     //------------------------------------------------------------------------------------------
+    // HELPER: Converts a local URI (from ImagePicker) to a Blob for Supabase Storage upload
+    const uriToBlob = async (uri) => {
+        // Use the modern fetch API to reliably convert the URI content to a Blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return blob;
+    };
+
+    //------------------------------------------------------------------------------------------
+    // FUNCTION: uploadAvatar
+    // Handles the actual upload to Supabase Storage
+    const uploadAvatar = async (uri) => {
+        if (!userId) {
+            Alert.alert('Error', 'User ID not found for upload.');
+            return null;
+        }
+        
+        setLoading(true);
+        let publicUrl = null;
+        
+        try {
+            // Determine file extension and create a unique file path for storage
+            // This is a robust way to get the file extension from the URI
+            const fileExtensionMatch = uri.match(/\.([0-9a-z]+)(?=[?#]|$)/i);
+            const fileExtension = (fileExtensionMatch ? fileExtensionMatch[1] : 'jpg').toLowerCase();
+
+            // Storage path: 'avatars/user_id/timestamp.ext'
+            const filePath = `avatars/${userId}/${Date.now()}.${fileExtension}`; 
+
+            // 1. Convert URI to Blob
+            const imageBlob = await uriToBlob(uri);
+            let mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+            if (fileExtension === 'png') {
+                mimeType = 'image/png';
+            } else if (fileExtension === 'jpeg' || fileExtension === 'jpg') {
+                mimeType = 'image/jpeg';
+            }
+
+            // 2. Upload the blob to Supabase storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars') // Ensure this bucket exists in your Supabase project
+                .upload(filePath, imageBlob, {
+                    cacheControl: '3600',
+                    upsert: true,
+                    contentType: mimeType
+                });
+
+            if (uploadError) throw uploadError;
+
+            // 3. Get the public URL to store in the 'profiles' table
+            const { data: { publicUrl: url } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+            
+            publicUrl = url;
+            Alert.alert("Upload Success", "Image uploaded! Press 'Save Changes' to permanently update your profile.");
+
+        } catch (error) {
+            console.error('Avatar upload failed:', error.message);
+            Alert.alert('Upload Error', `Failed to upload image: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+        
+        return publicUrl;
+    };
+
+    //------------------------------------------------------------------------------------------
     // Function: handleAvatarPress
-    // Description: Triggers the image selection and upload flow.
+    // Triggers the image selection and upload flow.
     const handleAvatarPress = async () => {
         if (!isEditing || loading) return;
-
-        // --- MOCK IMAGE PICKER & UPLOAD START ---
-        // In a real Expo/React Native app, you would use the following steps:
-        // 1. Use Expo's ImagePicker to select an image.
-        // 2. Convert the image file to a blob (File/Buffer).
-        // 3. Use `supabase.storage.from('avatars').upload(...)` to upload the blob.
-        // 4. Use `supabase.storage.from('avatars').getPublicUrl(...)` to get the public URL.
-        // 5. Call `setAvatarUrl(newPublicUrl)`.
         
-        Alert.alert(
-            "Avatar Update", 
-            "In a real application, you would now select and upload an image. Do you want to load a mock avatar?", 
-            [
-                { 
-                    text: "Load Mock Image", 
-                    onPress: () => {
-                        setLoading(true);
-                        // Mock generating a new unique, time-stamped placeholder URL
-                        const newMockUrl = `https://placehold.co/150x150/4762ff/ffffff?text=Avatar-${Date.now()}`; 
-                        setAvatarUrl(newMockUrl);
-                        setLoading(false);
-                        Alert.alert("Mock Success", "New mock avatar loaded. Press 'Save Changes' to update your profile URL.");
+        // 1. Check/Request Permissions
+        if (typeof ImagePicker === 'undefined') {
+             // FALLBACK/MOCK for this code editor environment
+             Alert.alert(
+                "Avatar Update", 
+                "ImagePicker not available. Proceeding with mock selection...", 
+                [{ 
+                    text: "Select Mock Image", 
+                    onPress: async () => {
+                        const mockUri = `https://placehold.co/150x150/4762ff/ffffff.png?text=Avatar-${Date.now()}`; 
+                        const newPublicUrl = await uploadAvatar(mockUri);
+                        if (newPublicUrl) setAvatarUrl(newPublicUrl);
                     }
-                },
-                { text: "Cancel", style: "cancel" }
-            ]
-        );
+                }]
+            );
+            return;
+        }
+        
+        let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.granted === false) {
+            Alert.alert("Permission Error", "Permission to access camera roll is required!");
+            return;
+        }
+        
+        // 2. Launch Image Picker
+        let pickerResult = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaType.Images, 
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        // NEVER REACHES HERE!!!
+        if (!pickerResult.canceled) {
+            const uri = pickerResult.assets[0].uri;
+            const newPublicUrl = await uploadAvatar(uri);
+
+            if (newPublicUrl) {
+                setAvatarUrl(newPublicUrl);
+            }
+        }
+        
     };
 
     //------------------------------------------------------------------------------------------
@@ -99,7 +183,8 @@ export default function ProfileScreen({ navigation }) {
 
                 if (profileError) throw profileError;
                 
-                setAvatarUrl(profile?.avatar_url || ''); // Set avatarUrl
+                // Fetch avatar URL from the database
+                setAvatarUrl(profile?.avatar_url || ''); 
                 setFullname(profile?.full_name || '');
                 setUsername(profile?.display_name || '');
                 
@@ -129,7 +214,7 @@ export default function ProfileScreen({ navigation }) {
                 full_name: tempFullname.trim(),
                 display_name: tempUsername.trim(),
                 updated_at: new Date().toISOString(),
-                // ADDED: Include the current avatarUrl state for saving
+                // Save the new avatar URL (which was set in setAvatarUrl after upload)
                 avatar_url: avatarUrl, 
             };
 
@@ -158,8 +243,8 @@ export default function ProfileScreen({ navigation }) {
         setTempFullname(fullname);
         setTempUsername(username);
         setIsEditing(false);
-        // Note: We don't revert avatarUrl here, as it may have been changed by handleAvatarPress
-        // but not saved. A real app might handle this with an 'unsaved changes' flow.
+        // Note: In a production app, you would typically refetch profile data here 
+        // to discard any uploaded but unsaved avatar URL changes. For simplicity, we skip refetching.
     };
 
     //------------------------------------------------------------------------------------------
@@ -189,7 +274,6 @@ export default function ProfileScreen({ navigation }) {
                 disabled={loading}
                 style={({pressed}) => [styles.imagePressable, { opacity: pressed && !loading ? 0.8 : 1 }]}
             >
-                {/* CONDITIONAL RENDERING: Display Image if avatarUrl exists, otherwise display Ionicons */}
                 {avatarUrl ? (
                     <Image 
                         source={avatarSource} 
