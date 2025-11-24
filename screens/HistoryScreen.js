@@ -50,7 +50,6 @@ export default function HistoryScreen({navigation}) {
       drink_date: d.drink_date ? d.drink_date.slice(0, 10) : ''
     }));
     if (!error) setHistory(normalizedData);
-    console.log("normalized Data: ", normalizedData);
   };
 
   //------------------------------------------------------------------------------------------
