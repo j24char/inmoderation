@@ -2,38 +2,9 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { checkInteractions } from '../utils/checkInteraction.js';
+import { DrinkChart } from '../components/DrinkChart.js';
 import { processDailyTotals, averageLast7Days } from '../utils/dataUtils';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-// Mock card data placed at module scope so it can be used as the initial state
-// const mockCardData = [
-//   {
-//     id: '1',
-//     // ISO 8601 datetime compatible with Supabase timestamp/datetime
-//     date: '2025-11-15T00:00:00Z',
-//     quantity: 3,
-//     description: 'Whiskey Coke',
-//   },
-//   {
-//     id: '2',
-//     date: '2025-11-16T00:00:00Z',
-//     quantity: 2,
-//     description: 'Gin & Tonic',
-//   },
-//   {
-//     id: '3',
-//     date: '2025-11-16T00:00:00Z',
-//     quantity: 1,
-//     description: 'Pinot grigio',
-//   },
-//   {
-//     id: '4',
-//     date: '2025-11-17T00:00:00Z',
-//     quantity: 4,
-//     description: 'Hazy IPA',
-//   },
-// ];
 
 export default function HomeScreen({ navigation }) {
   const [drug1, setDrug1] = useState('');
@@ -46,6 +17,7 @@ export default function HomeScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [refreshChartTrigger, setRefreshChartTrigger] = useState(0);
 
   // get the logo depending on the current platform
   const logoSource = Platform.OS === 'web' ? { uri: '/adaptive-icon.png' } : require('../assets/adaptive-icon.png');
@@ -64,20 +36,6 @@ export default function HomeScreen({ navigation }) {
     return { total, avg7 };
   }, [cards]);
 
-  // Save changes in modal
-  // const handleSave = () => {
-  //   setCards((prevCards) => {
-  //     if (!selectedCard) return prevCards;
-  //     const exists = prevCards.some((c) => c.id === selectedCard.id);
-  //     if (exists) {
-  //       return prevCards.map((c) => (c.id === selectedCard.id ? selectedCard : c));
-  //     }
-  //     // Prepend new card
-  //     return [selectedCard, ...prevCards];
-  //   });
-  //   setModalVisible(false);
-  //   setSelectedCard(null);
-  // };
   const handleSave = async () => {
     if (!selectedCard) return;
 
@@ -121,6 +79,7 @@ export default function HomeScreen({ navigation }) {
             if (error) throw error;
             Alert.alert('Success', 'New drink logged!');
         }
+        setRefreshChartTrigger(prev => prev + 1);
         
         // After successful save, refresh the list from the database
         await fetchDrinks();
@@ -131,19 +90,6 @@ export default function HomeScreen({ navigation }) {
     } finally {
         setSelectedCard(null);
     }
-  };
-
-  const mockCheckInteraction = async () => {
-    if (!drug1.trim() || !drug2.trim()) {
-      Alert.alert('Missing Input', 'Please enter values for both fields before continuing.');
-      return; // stop navigation
-    }
-    // Search data for interactions
-    console.log("Checking data...");
-    //const found = await checkInteractions(drug1);
-    const found = null;
-    setResults(found);
-    navigation.navigate('Result', { drug1, drug2, results: found });
   };
 
   const signOut = async () => {
@@ -284,6 +230,7 @@ export default function HomeScreen({ navigation }) {
         data={cards}
         ListHeaderComponent={
           <View style={styles.topContainer}>
+            <DrinkChart refreshTrigger={refreshChartTrigger} /> 
             <View style={styles.statRow}>
               <View style={[styles.statCard, { marginRight: 8 }]}>
                 <Text style={styles.statTitle}>Total Drinks</Text>
@@ -294,8 +241,8 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.statValue}>{Number.isFinite(stats.avg7) ? stats.avg7.toFixed(1) : '0.0'}</Text>
               </View>
             </View>
-            <Text style={styles.title}>Header / Stats / Info</Text>
-            <TextInput
+            {/* <Text style={styles.title}>Header / Stats / Info</Text> */}
+            {/* <TextInput
               style={styles.input}
               placeholder="First Drug"
               value={drug1}
@@ -307,16 +254,7 @@ export default function HomeScreen({ navigation }) {
               placeholder="Second Drug"
               value={drug2}
               onChangeText={setDrug2}
-            />
-
-            <Pressable 
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-              ]} 
-              onPress={() => navigation.navigate('History')}>
-              <Text style={styles.buttonText}>View History</Text>
-            </Pressable>    
+            /> */}
               
             <View style={{ marginTop: 10 }} />
             <Pressable style={styles.button} onPress={addDrink}>
@@ -335,8 +273,20 @@ export default function HomeScreen({ navigation }) {
             <Text>Description: {item.description}</Text>
           </TouchableOpacity>
         )}
+        ListFooterComponent={
+          <View style={styles.topContainer}>
+            <Pressable 
+                style={({ pressed }) => [
+                  styles.button,
+                  pressed && styles.buttonPressed,
+                ]} 
+                onPress={() => navigation.navigate('History')}>
+                <Text style={styles.buttonText}>View Complete History</Text>
+              </Pressable>   
+          </View>
+        }
       />
-    
+            
       <Modal
         visible={modalVisible}
         animationType="slide"
