@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -109,7 +110,7 @@ export default function HistoryScreen({navigation}) {
 
   //------------------------------------------------------------------------------------------
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Drink History</Text>
       <FlatList
         data={history}
@@ -131,7 +132,7 @@ export default function HistoryScreen({navigation}) {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

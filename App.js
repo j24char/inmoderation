@@ -4,13 +4,42 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { supabase } from './supabase';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
-import ResultScreen from './screens/ResultScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import StatsScreen from './screens/StatsScreen';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { getSavedSession, saveSession, clearSession } from './utils/authStore';
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#9c31ff',
+        tabBarInactiveTintColor: '#666',
+        tabBarLabelStyle: { fontSize: 12 },
+        tabBarIcon: ({ color, size }) => {
+          let iconName = 'ellipse';
+          if (route.name === 'Home') iconName = 'home-outline';
+          else if (route.name === 'History') iconName = 'time-outline';
+          else if (route.name === 'Stats') iconName = 'stats-chart-outline';
+          else if (route.name === 'Profile') iconName = 'person-outline';
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="History" component={HistoryScreen} />
+      <Tab.Screen name="Stats" component={StatsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -67,18 +96,9 @@ export default function App() {
       <Stack.Navigator>
         {session && session.user ? (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Result" component={ResultScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="History" component={HistoryScreen} 
-              options={{
-                headerBackTitle: 'Home', // text shown on back button
-                headerBackTitleStyle: {
-                  color: '#9c31ff', // app main color
-                  fontWeight: '500', // optional
-                },
-              }}
-            />
+            {/* Main tab navigator lives inside the stack so we can push screens like Result */}
+            <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+            
           </>
         ) : (
           <>

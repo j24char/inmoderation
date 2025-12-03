@@ -14,6 +14,7 @@ import {
     ActivityIndicator
 } from 'react-native';
 import { supabase } from '../supabase';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons'; // Import icons for better UX
 import * as ImagePicker from 'expo-image-picker'; 
 
@@ -65,7 +66,6 @@ export default function ProfileScreen({ navigation }) {
         
         setLoading(true);
         let publicUrl = null;
-        
         try {
             // Determine file extension and create a unique file path for storage
             // This is a robust way to get the file extension from the URI
@@ -262,6 +262,7 @@ export default function ProfileScreen({ navigation }) {
     
     //------------------------------------------------------------------------------------------
     return (
+        <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>Your Profile</Text>
 
@@ -346,6 +347,7 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.buttonText}>Sign Out</Text>
             </Pressable>
         </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
         maxWidth: 350,
         marginTop: 20,
     },
-    viewField: {
+        viewField: {
         marginBottom: 15,
         padding: 10,
         backgroundColor: '#fff',

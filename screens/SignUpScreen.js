@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
 
 export default function LoginScreen({ navigation }) {
@@ -89,7 +90,7 @@ export default function LoginScreen({ navigation }) {
 
   //------------------------------------------------------------------------------------------
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Image source={{uri: '/logo.png'}} style={styles.image} />
       <Text style={styles.title}>InModeration</Text>
       
@@ -125,7 +126,7 @@ export default function LoginScreen({ navigation }) {
       <View style={{ marginTop: 10 }} />
       
       
-    </View>
+    </SafeAreaView>
   );
 }
 

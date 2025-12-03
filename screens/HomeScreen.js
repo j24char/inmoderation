@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { DrinkChart } from '../components/DrinkChart.js';
@@ -237,7 +238,7 @@ export default function HomeScreen({ navigation }) {
 
   //------------------------------------------------------------------------------------------
   return (
-    <View>
+    <SafeAreaView style={{ flex: 1 }}>
       <FlatList
         data={cards}
         ListHeaderComponent={
@@ -298,7 +299,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         }
       />
-            
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -370,7 +370,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
