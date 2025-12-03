@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase } from '../supabase';
+import { saveSession } from '../utils/authStore';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -12,8 +13,19 @@ export default function LoginScreen({ navigation }) {
   // Function: signIn
   // Description:  Uses email/password to sign in
   const signIn = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) Alert.alert('Login failed', error.message);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      Alert.alert('Login failed', error.message);
+      return;
+    }
+    // Persist session securely so users stay logged in across app restarts
+    if (data?.session) {
+      try {
+        await saveSession(data.session);
+      } catch (e) {
+        console.warn('Failed to save session after sign in', e);
+      }
+    }
   };
 
   //------------------------------------------------------------------------------------------

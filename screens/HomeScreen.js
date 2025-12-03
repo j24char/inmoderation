@@ -100,6 +100,13 @@ export default function HomeScreen({ navigation }) {
   // Description:  Signs the user out from authenticated database connection
   const signOut = async () => {
     await supabase.auth.signOut();
+    // clear saved session from secure store when signing out
+    try {
+      const { clearSession } = await import('../utils/authStore');
+      await clearSession();
+    } catch (e) {
+      console.warn('Failed to clear session on sign out', e);
+    }
   };
 
   //------------------------------------------------------------------------------------------
