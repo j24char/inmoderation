@@ -3,7 +3,7 @@ import { Alert, Button, FlatList, Image, Modal, Platform, Pressable, StyleSheet,
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { DrinkChart } from '../components/DrinkChart.js';
-import { processDailyTotals, averageLast7Days } from '../utils/dataUtils';
+import { processDailyTotals, averageLastNDays } from '../utils/dataUtils';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function HomeScreen({ navigation }) {
@@ -32,8 +32,8 @@ export default function HomeScreen({ navigation }) {
   const stats = React.useMemo(() => {
     const processed = processDailyTotals(cards || []);
     const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
-    const avg7 = averageLast7Days(processed);
-    return { total, avg7 };
+    const avg30 = averageLastNDays(processed, 30);
+    return { total, avg30 };
   }, [cards]);
 
   //------------------------------------------------------------------------------------------
@@ -242,8 +242,8 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.statValue}>{stats.total}</Text>
               </View>
               <View style={[styles.statCard, { marginLeft: 8 }]}>
-                <Text style={styles.statTitle}>7-day Avg</Text>
-                <Text style={styles.statValue}>{Number.isFinite(stats.avg7) ? stats.avg7.toFixed(1) : '0.0'}</Text>
+                <Text style={styles.statTitle}>Avg Drinks/Day Last 30 days</Text>
+                <Text style={styles.statValue}>{Number.isFinite(stats.avg30) ? stats.avg30.toFixed(1) : '0.0'}</Text>
               </View>
             </View>
             {/* <Text style={styles.title}>Header / Stats / Info</Text> */}

@@ -46,15 +46,27 @@ export function processDailyTotals(records = []) {
  * Missing days count as zero in the average calculation.
  */
 export function averageLast7Days(processedData = [], options = {}) {
+  return averageLastNDays(processedData, 7, options);
+}
+
+/**
+ * averageLastNDays(processedData, n = 7, options)
+ * - processedData: array returned from processDailyTotals
+ * - n: number of days to average (including referenceDate)
+ * - options (optional): { referenceDate: Date|string }
+ * Returns the average quantity per day over the last n calendar days (including referenceDate).
+ * Missing days count as zero in the average calculation.
+ */
+export function averageLastNDays(processedData = [], n = 7, options = {}) {
   const ref = options.referenceDate ? new Date(options.referenceDate) : new Date();
   if (isNaN(ref.getTime())) throw new Error('Invalid referenceDate');
 
   // Build a lookup for quick access
   const lookup = new Map(processedData.map((p) => [p.date, p.quantity]));
 
-  // Gather last 7 days (including ref)
+  // Gather last n days (including ref)
   const totals = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = n - 1; i >= 0; i--) {
     const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
     d.setUTCDate(d.getUTCDate() - i);
     const iso = d.toISOString().slice(0, 10);
@@ -63,7 +75,7 @@ export function averageLast7Days(processedData = [], options = {}) {
   }
 
   const sum = totals.reduce((s, v) => s + v, 0);
-  const avg = sum / 7;
+  const avg = sum / n;
   return avg;
 }
 
