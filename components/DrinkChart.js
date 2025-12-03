@@ -94,7 +94,9 @@ export const DrinkChart = ({ refreshTrigger }) => {
   
   // Find the maximum number of drinks to determine the Y-axis scale
   const maxDrinks = Math.max(...chartKitData.datasets[0].data);
-  const yAxisMax = maxDrinks > 0 ? maxDrinks * 1.2 : 5; // Add padding or set minimum of 5
+  const yAxisMax = maxDrinks > 0 ? maxDrinks : 5; // Use maxDrinks as scale base (minimum 5)
+  // Determine number of horizontal grid lines (segments). Use one per integer up to a reasonable cap.
+  const segments = Math.min(Math.max(1, Math.ceil(yAxisMax)), 10);
 
   return (
     <View style={styles.card}>
@@ -122,13 +124,18 @@ export const DrinkChart = ({ refreshTrigger }) => {
             fillShadowGradient: '#9c31ff',
             // Bar background color
             barPercentage: 0.8,
+            // Style background (grid) lines so horizontal lines are visible
+            propsForBackgroundLines: {
+              stroke: '#e6e6e6',
+              strokeWidth: 1,
+            },
           }}
           // Set a vertical interval for the X-axis labels to prevent overlap
           xLabelsOffset={-10}
           fromZero={true}
           withHorizontalLabels={true}
           withVerticalLabels={true}
-          segments={Math.ceil(yAxisMax / 5)} // Number of horizontal lines
+          segments={segments} // Number of horizontal grid lines (attempt one per integer)
         />
       ) : (
         <View style={styles.noDataContainer}>

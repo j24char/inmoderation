@@ -15,6 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.jalanc.inmoderation",
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos to select an avatar.",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to take a photo for your avatar."
@@ -34,6 +36,11 @@
     },
     "web": {
       "favicon": "./assets/icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8b00c0d1-6c2f-41aa-aacf-db02f8c01baa"
+      }
     }
   }
 }
