@@ -78,10 +78,85 @@ export default function StatsScreen() {
     date: item.drink_date ?? item.date ?? item.datetime ?? item.created_at,
     quantity: Number(item.drink_count ?? item.quantity ?? item.qty ?? 0),
   }));
+  console.log("Mapped drinks for stats: ", mapped);
 
   const processed = processDailyTotals(mapped);
   const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
   const avg30 = averageLastNDays(processed, 30);
+
+  // Function to produce only one data point per day by summing quantities
+  function collapseByDay(mapped) {
+    const byDay = {};
+
+    for (const item of mapped) {
+      const dateStr = (item.drink_date ?? item.date ?? item.datetime ?? item.created_at)
+        .slice(0, 10); // yyyy-mm-dd
+
+      const qty = Number(item.drink_count ?? item.quantity ?? item.qty ?? 0);
+
+      if (!byDay[dateStr]) {
+        byDay[dateStr] = { date: dateStr, quantity: 0 };
+      }
+      byDay[dateStr].quantity += qty;
+    }
+
+    return Object.values(byDay).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Function to insert quantity=0 days for any missing dates in the range
+  function fillMissingDays(sortedDays) {
+    if (sortedDays.length === 0) return [];
+
+    const result = [];
+    const msDay = 24 * 60 * 60 * 1000;
+
+    let current = new Date(sortedDays[0].date + "T00:00:00Z");
+    let end = new Date(sortedDays[sortedDays.length - 1].date + "T00:00:00Z");
+
+    const dayMap = new Map(sortedDays.map((d) => [d.date, d.quantity]));
+
+    while (current <= end) {
+      const dateStr = current.toISOString().slice(0, 10);
+      result.push({
+        date: dateStr,
+        quantity: dayMap.get(dateStr) ?? 0,
+      });
+      current = new Date(current.getTime() + msDay);
+    }
+
+    return result;
+  }
+
+  // Function to compute longest streaks of zero and positive days
+  function computeStreaks(days) {
+    let longestZero = 0;
+    let longestPositive = 0;
+    let currentZero = 0;
+    let currentPositive = 0;
+
+    for (const d of days) {
+      if (d.quantity > 0) {
+        currentPositive++;
+        currentZero = 0;
+      } else {
+        currentZero++;
+        currentPositive = 0;
+      }
+      longestPositive = Math.max(longestPositive, currentPositive);
+      longestZero = Math.max(longestZero, currentZero);
+    }
+
+    return { longestZero, longestPositive };
+  }
+
+  const collapsed = collapseByDay(mapped);
+  const filled = fillMissingDays(collapsed);
+  const { longestZero: longestZeroStreak, longestPositive: longestPositiveStreak } = computeStreaks(filled);
+  const maxSingleDayTotal = processed.length ? Math.max(...processed.map(d => d.quantity)) : 0;
+  //TODO: use a profile determined threshold
+  const threshold = 5; // you can pass this in or compute it elsewhere
+  const daysAboveThreshold = processed.filter(d => d.quantity > threshold).length;
+
 
   // Average drinks per week since the start of the data
   let avgPerWeek = 0;
@@ -120,6 +195,22 @@ export default function StatsScreen() {
       <View style={styles.row}>
         <Text style={styles.label}>Avg per Drinking Day:</Text>
         <Text style={styles.value}>{Number.isFinite(avgPerDrinkingDay) ? avgPerDrinkingDay.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Longest Drinking Streak:</Text>
+        <Text style={styles.value}>{Number.isFinite(longestPositiveStreak) ? longestPositiveStreak.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Longest Sober Streak:</Text>
+        <Text style={styles.value}>{Number.isFinite(longestZeroStreak) ? longestZeroStreak.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Most Drinks in a Single Day:</Text>
+        <Text style={styles.value}>{Number.isFinite(maxSingleDayTotal) ? maxSingleDayTotal.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Days Exceeding Limit:</Text>
+        <Text style={styles.value}>{Number.isFinite(daysAboveThreshold) ? daysAboveThreshold.toFixed(1) : '0.0'}</Text>
       </View>
     </SafeAreaView>
   );
