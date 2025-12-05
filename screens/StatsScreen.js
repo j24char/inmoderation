@@ -78,7 +78,7 @@ export default function StatsScreen() {
     date: item.drink_date ?? item.date ?? item.datetime ?? item.created_at,
     quantity: Number(item.drink_count ?? item.quantity ?? item.qty ?? 0),
   }));
-  console.log("Mapped drinks for stats: ", mapped);
+  
 
   const processed = processDailyTotals(mapped);
   const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
