@@ -1,11 +1,18 @@
 export default {
   expo: {
+    icon: "./assets/icon.png",
     name: "InModeration",
     slug: "InModeration",
     ios: {
       bundleIdentifier: "com.jalanc.inmoderation",
       icon: "./assets/icon.png",
       supportsTablet: true
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/icon.png",
+        backgroundColor: "#ffffff",
+      },
     },
     extra: {
       EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
