@@ -83,6 +83,25 @@ export default function StatsScreen() {
   const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
   const avg30 = averageLastNDays(processed, 30);
 
+  // Average drinks per week since the start of the data
+  let avgPerWeek = 0;
+  // Average per drinking day (only days with quantity > 0)
+  let avgPerDrinkingDay = 0;
+
+  if (processed.length > 0) {
+    // Determine earliest date in processed (array is sorted ascending)
+    const firstDateStr = processed[0].date;
+    const firstDate = new Date(firstDateStr + 'T00:00:00Z');
+    const ref = new Date();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysSpan = Math.max(1, Math.floor((ref - firstDate) / msPerDay) + 1);
+    const weeks = daysSpan / 7;
+    avgPerWeek = weeks > 0 ? (total / weeks) : total;
+
+    const drinkingDays = processed.filter((p) => Number(p.quantity) > 0).length;
+    avgPerDrinkingDay = drinkingDays > 0 ? total / drinkingDays : 0;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Statistics</Text>
@@ -93,6 +112,14 @@ export default function StatsScreen() {
       <View style={styles.row}>
         <Text style={styles.label}>30-day Avg:</Text>
         <Text style={styles.value}>{Number.isFinite(avg30) ? avg30.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Average / Week (since first):</Text>
+        <Text style={styles.value}>{Number.isFinite(avgPerWeek) ? avgPerWeek.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Avg per Drinking Day:</Text>
+        <Text style={styles.value}>{Number.isFinite(avgPerDrinkingDay) ? avgPerDrinkingDay.toFixed(1) : '0.0'}</Text>
       </View>
     </SafeAreaView>
   );
