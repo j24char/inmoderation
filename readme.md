@@ -29,15 +29,15 @@ The app focuses on simplicity and speed, providing users with a history of their
 </p>
 2. **Statistics** – Shows the statistics around consumption. 
 <p align="center">
-  <img src="assets/Statistics.png" alt="InModeration Statistics Screen" width="320" />
+  <img src="assets/Statistics.PNG" alt="InModeration Statistics Screen" width="320" />
 </p>
 3. **History** – Displays your logged history; allows clearing history.  
 <p align="center">
-  <img src="assets/History.png" alt="InModeration History Screen" width="320" />
+  <img src="assets/History.PNG" alt="InModeration History Screen" width="320" />
 </p>
 4. **Login** - Users sign back into the app.
 <p align="center">
-  <img src="assets/Login.png" alt="InModeration Login Screen" width="320" />
+  <img src="assets/Login.PNG" alt="InModeration Login Screen" width="320" />
 </p>
 5. **SignUp** - New users register for the app.
 <p align="center">
