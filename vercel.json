@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/_expo/*", "destination": "/_expo/*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}
