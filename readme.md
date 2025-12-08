@@ -51,9 +51,25 @@ The app focuses on simplicity and speed, providing users with a history of their
 - **Frontend:** React Native (Expo)  
 - **Backend / Database:** Supabase  
 - **Authentication:** Supabase email/password  
-- **Data Source:** OpenFDA API (currently mocked for MVP)  
 - **Icons & UI:** Ionicons, basic React Native components  
 
+--- 
+
+## Deployment
+
+1. iOS App Store:
+
+```bash
+eas build --platform ios
+eas submit -p ios
+```
+
+2. Google Play Store: 
+
+```bash
+eas build --platform android
+eas submit -p android
+```
 ---
 
 ## Installation
