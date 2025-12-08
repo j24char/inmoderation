@@ -24,13 +24,14 @@ export default {
       },
       infoPlist: {
         NSPhotoLibraryUsageDescription: "Allow $(PRODUCT_NAME) to access your photos to select an avatar.",
-        NSCameraUsageDescription: "Allow $(PRODUCT_NAME) to access your camera to take a photo for your avatar."
+        NSCameraUsageDescription: "Allow $(PRODUCT_NAME) to access your camera to take a photo for your avatar.",
+        ITSAppUsesNonExemptEncryption: "false"
       },
       buildNumber: "10000"
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/icon.png",
+        foregroundImage: "./assets/logo.png",
         backgroundColor: "#ffffff"
       },
       permissions: [
