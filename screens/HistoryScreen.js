@@ -44,7 +44,7 @@ export default function HistoryScreen({navigation}) {
       .from("drinks")
       .select("*")
       .eq("user_id", user.id)
-      .order("drink_date", { ascending: true });
+      .order("drink_date", { ascending: false });
     const normalizedData = data.map(d => ({
       ...d,
       // This safely extracts only the date part (YYYY-MM-DD) from the database timestamp string

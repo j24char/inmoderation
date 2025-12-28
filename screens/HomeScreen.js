@@ -38,6 +38,16 @@ export default function HomeScreen({ navigation }) {
   }, [cards]);
 
   //------------------------------------------------------------------------------------------
+  // Function: toLocalDateString
+  // Description:  Local helper to convert Date object to YYYY-MM-DD string
+  const toLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  //------------------------------------------------------------------------------------------
   // Function: handleSave
   // Description:  Updates the database 
   const handleSave = async () => {
@@ -54,7 +64,8 @@ export default function HomeScreen({ navigation }) {
     const drinkData = {
         user_id: user.id,
         drink_count: Number(selectedCard.quantity),
-        drink_date: selectedCard.date.slice(0, 10), // Ensure format is YYYY-MM-DD
+        //drink_date: selectedCard.date.slice(0, 10), // Ensure format is YYYY-MM-DD
+        drink_date: selectedCard.date,
         notes: selectedCard.description,
     };
 
@@ -116,7 +127,7 @@ export default function HomeScreen({ navigation }) {
   const addDrink = async () => {
     const newCard = {
       id: Date.now().toString(),
-      date: new Date().toISOString().slice(0, 10), // yyyy-mm-dd
+      date: new Date().toLocaleDateString('en-CA'),
       quantity: 1,
       description: '',
     };
@@ -281,7 +292,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.card}
             onPress={() => handleCardPress(item)}
           >
-            <Text style={styles.cardDate}>{item.date ? new Date(item.date).toLocaleDateString() : ''}</Text>
+            <Text style={styles.cardDate}>{item.date ? new Date(item.date + 'T00:00:00').toLocaleDateString() : ''}</Text>
             <Text>Quantity: {item.quantity}</Text>
             <Text>Description: {item.description}</Text>
           </TouchableOpacity>
@@ -319,12 +330,18 @@ export default function HomeScreen({ navigation }) {
                       style={[styles.input, { justifyContent: 'center' }]}
                       onPress={() => setShowDatePicker(true)}
                     >
-                      <Text>{selectedCard?.date ? new Date(selectedCard.date).toLocaleDateString() : 'Select date'}</Text>
+                      {/* <Text>{selectedCard?.date ? new Date(selectedCard.date).toLocaleDateString() : 'Select date'}</Text> */}
+                      <Text>{selectedCard?.date ? selectedCard.date : 'Select date'}</Text>
                     </Pressable>
                     {showDatePicker && (
                       <View style={styles.pickerWrapper}>
                         <DateTimePicker
-                          value={selectedCard?.date ? new Date(selectedCard.date) : new Date()}
+                          //value={selectedCard?.date ? new Date(selectedCard.date) : new Date()}
+                          value={
+                            selectedCard?.date
+                              ? new Date(selectedCard.date + 'T00:00:00')
+                              : new Date()
+                          }
                           mode="date"
                           display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
                           onChange={(event, picked) => {
@@ -334,7 +351,21 @@ export default function HomeScreen({ navigation }) {
                               return;
                             }
                             const chosen = picked || new Date();
-                            setSelectedCard({ ...selectedCard, date: chosen.toISOString() });
+
+                            // Rebuild as LOCAL calendar date (this removes UTC shift)
+                            const localDate = new Date(
+                              chosen.getFullYear(),
+                              chosen.getMonth(),
+                              chosen.getDate()
+                            );
+
+                            const yyyyMMdd = localDate.toLocaleDateString('en-CA');
+
+                            setSelectedCard({
+                              ...selectedCard,
+                              date: yyyyMMdd,
+                            });
+
                             setShowDatePicker(false);
                           }}
                           {...(Platform.OS === 'ios' ? { textColor: '#000' } : {})}

@@ -1,10 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { supabase } from '../supabase'; 
-import { BarChart } from 'react-native-chart-kit';
+import { LineChart } from 'react-native-chart-kit';
 
 // Get the width of the device screen to make the chart responsive
 const screenWidth = Dimensions.get('window').width;
+
+/**
+ * Custom Tooltip for the chart
+ */
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-md">
+        <p className="font-bold text-gray-700">{label}</p>
+        <p className="text-[#9c31ff] font-medium">{`Drinks: ${payload[0].value}`}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export const DrinkChart = ({ refreshTrigger }) => {
   const [chartData, setChartData] = useState([]);
@@ -88,6 +103,7 @@ export const DrinkChart = ({ refreshTrigger }) => {
     datasets: [
       {
         data: chartData.map(item => item.drinks),
+        color: () => '#9c31ff',
       },
     ],
   };
@@ -106,36 +122,41 @@ export const DrinkChart = ({ refreshTrigger }) => {
       </View>
       
       {chartKitData.datasets[0].data.length > 0 ? (
-        <BarChart
+        <LineChart
           style={styles.chart}
           data={chartKitData}
-          width={screenWidth - 32} // Subtract padding from screen width
+          width={screenWidth - 32}
           height={280}
-          yAxisSuffix=" " // Add space after the number
+          yAxisSuffix=" "
           yAxisLabel=""
+          fromZero={true}
+          withDots={true}
+          withShadow={true}
+          withInnerLines={true}
+          withOuterLines={false}
+          withVerticalLines={false}
+          withHorizontalLines={true}
+          segments={segments}
+          bezier   // ⭐ THIS enables smooth curved lines
           chartConfig={{
             backgroundColor: '#ffffff',
             backgroundGradientFrom: '#ffffff',
             backgroundGradientTo: '#ffffff',
             decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(156, 49, 255, ${opacity})`, // Primary color
+            color: (opacity = 1) => `rgba(156, 49, 255, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            fillShadowGradientOpacity: 0.5,
-            fillShadowGradient: '#9c31ff',
-            // Bar background color
-            barPercentage: 0.8,
-            // Style background (grid) lines so horizontal lines are visible
+            strokeWidth: 3, // Thicker line for a smoother look
+            propsForDots: {
+              r: '4',
+              strokeWidth: '2',
+              stroke: '#9c31ff',
+            },
             propsForBackgroundLines: {
               stroke: '#e6e6e6',
               strokeWidth: 1,
             },
           }}
-          // Set a vertical interval for the X-axis labels to prevent overlap
           xLabelsOffset={-10}
-          fromZero={true}
-          withHorizontalLabels={true}
-          withVerticalLabels={true}
-          segments={segments} // Number of horizontal grid lines (attempt one per integer)
         />
       ) : (
         <View style={styles.noDataContainer}>

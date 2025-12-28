@@ -49,10 +49,34 @@ export default function ProfileScreen({ navigation }) {
     //------------------------------------------------------------------------------------------
     // HELPER: Converts a local URI (from ImagePicker) to a Blob for Supabase Storage upload
     const uriToBlob = async (uri) => {
-        // Use the modern fetch API to reliably convert the URI content to a Blob
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        return blob;
+        // Try the fetch().blob() approach first (works on web).
+        try {
+            const response = await fetch(uri);
+            if (response && typeof response.blob === 'function') {
+                return await response.blob();
+            }
+        } catch (e) {
+            // fall through to XHR fallback for React Native environments
+            console.warn('fetch().blob() failed, falling back to XHR for uriToBlob:', e.message || e);
+        }
+
+        // Fallback: use XMLHttpRequest to get a blob (works reliably on React Native)
+        return await new Promise((resolve, reject) => {
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.onload = function () {
+                    resolve(xhr.response);
+                };
+                xhr.onerror = function (err) {
+                    reject(new Error('uriToBlob XHR error'));
+                };
+                xhr.responseType = 'blob';
+                xhr.open('GET', uri, true);
+                xhr.send(null);
+            } catch (err) {
+                reject(err);
+            }
+        });
     };
 
     //------------------------------------------------------------------------------------------
@@ -115,9 +139,9 @@ export default function ProfileScreen({ navigation }) {
 
     //------------------------------------------------------------------------------------------
     // Function: handleAvatarPress
-    // Triggers the image selection and upload flow.
+    // Triggers the image selection and upload flow. Always available (unless loading).
     const handleAvatarPress = async () => {
-        if (!isEditing || loading) return;
+        if (loading) return;
         
         // 1. Check/Request Permissions
         if (typeof ImagePicker === 'undefined') {
@@ -137,28 +161,43 @@ export default function ProfileScreen({ navigation }) {
             return;
         }
         
-        let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.granted === false) {
-            Alert.alert("Permission Error", "Permission to access camera roll is required!");
-            return;
-        }
-        
-        // 2. Launch Image Picker
-        let pickerResult = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaType.Images, 
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
-        // NEVER REACHES HERE!!!
-        if (!pickerResult.canceled) {
-            const uri = pickerResult.assets[0].uri;
-            const newPublicUrl = await uploadAvatar(uri);
-
-            if (newPublicUrl) {
-                setAvatarUrl(newPublicUrl);
+            // Request permissions where necessary (native platforms). On web this will be a no-op.
+            try {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync?.();
+                if (permissionResult && permissionResult.granted === false) {
+                    Alert.alert("Permission Error", "Permission to access camera roll is required!");
+                    return;
+                }
+            } catch (permErr) {
+                // Some platforms or versions may throw; continue to attempt picker.
+                console.warn('ImagePicker permission check failed:', permErr);
             }
-        }
+        
+            // 2. Launch Image Picker
+            // prefer new `ImagePicker.MediaType` API; fall back if not present
+            const mediaTypes = ImagePicker.MediaType?.Images ?? ImagePicker.MediaTypeOptions?.Images ?? ImagePicker.MediaType;
+            const pickerResult = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: mediaTypes,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!pickerResult) return;
+
+            // expo-image-picker on web returns { cancelled } or { canceled } depending on version.
+            const cancelled = pickerResult.canceled ?? pickerResult.cancelled;
+            if (!cancelled) {
+                const uri = pickerResult.assets ? pickerResult.assets[0].uri : pickerResult.uri;
+                if (uri) {
+                    const newPublicUrl = await uploadAvatar(uri);
+                    if (newPublicUrl) {
+                        setAvatarUrl(newPublicUrl);
+                        // If not already editing, optionally put the user into edit mode so they can save.
+                        if (!isEditing) setIsEditing(true);
+                    }
+                }
+            }
         
     };
 
