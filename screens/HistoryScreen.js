@@ -139,7 +139,7 @@ export default function HistoryScreen({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     backgroundColor: '#f4f4f4ff',
   },
   title: {
@@ -158,8 +158,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   desc: { color: '#555' },
-    buttonWrapper: {
-    marginTop: 30,
+  buttonWrapper: {
+    marginTop: 20,
     alignItems: 'center',
   },
   signOutButton: {
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 20,
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 0,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,

@@ -38,16 +38,6 @@ export default function HomeScreen({ navigation }) {
   }, [cards]);
 
   //------------------------------------------------------------------------------------------
-  // Function: toLocalDateString
-  // Description:  Local helper to convert Date object to YYYY-MM-DD string
-  const toLocalDateString = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  //------------------------------------------------------------------------------------------
   // Function: handleSave
   // Description:  Updates the database 
   const handleSave = async () => {
@@ -64,7 +54,6 @@ export default function HomeScreen({ navigation }) {
     const drinkData = {
         user_id: user.id,
         drink_count: Number(selectedCard.quantity),
-        //drink_date: selectedCard.date.slice(0, 10), // Ensure format is YYYY-MM-DD
         drink_date: selectedCard.date,
         notes: selectedCard.description,
     };
@@ -105,6 +94,43 @@ export default function HomeScreen({ navigation }) {
     } finally {
         setSelectedCard(null);
     }
+  };
+
+  //------------------------------------------------------------------------------------------
+  // Function: handleDelete
+  // Description:  Deletes the selected drink record from the database
+  const handleDelete = async () => {
+    if (!selectedCard) return;
+
+    Alert.alert(
+      'Delete Record',
+      'Are you sure you want to delete this drink record?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('drinks')
+                .delete()
+                .eq('id', selectedCard.id);
+
+              if (error) throw error;
+
+              setModalVisible(false);
+              setSelectedCard(null);
+              setRefreshChartTrigger(prev => prev + 1);
+              await fetchDrinks();
+            } catch (err) {
+              console.error('Delete failed:', err);
+              Alert.alert('Error', 'Failed to delete record.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   //------------------------------------------------------------------------------------------
@@ -247,6 +273,8 @@ export default function HomeScreen({ navigation }) {
     });
   }, [navigation, username, logoSource]);
 
+  const isExistingRecord = selectedCard && selectedCard.id.length < 15;
+  
   //------------------------------------------------------------------------------------------
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -330,13 +358,11 @@ export default function HomeScreen({ navigation }) {
                       style={[styles.input, { justifyContent: 'center' }]}
                       onPress={() => setShowDatePicker(true)}
                     >
-                      {/* <Text>{selectedCard?.date ? new Date(selectedCard.date).toLocaleDateString() : 'Select date'}</Text> */}
                       <Text>{selectedCard?.date ? selectedCard.date : 'Select date'}</Text>
                     </Pressable>
                     {showDatePicker && (
                       <View style={styles.pickerWrapper}>
                         <DateTimePicker
-                          //value={selectedCard?.date ? new Date(selectedCard.date) : new Date()}
                           value={
                             selectedCard?.date
                               ? new Date(selectedCard.date + 'T00:00:00')
@@ -394,7 +420,22 @@ export default function HomeScreen({ navigation }) {
 
                 <View style={styles.modalButtons}>
                   <Button title="Save" onPress={handleSave} />
-                  <Button title="Cancel" onPress={() => { setModalVisible(false); setSelectedCard(null); }} />
+
+                  {isExistingRecord && (
+                    <Button
+                      title="Delete"
+                      color="#d11a2a"
+                      onPress={handleDelete}
+                    />
+                  )}
+
+                  <Button
+                    title="Cancel"
+                    onPress={() => {
+                      setModalVisible(false);
+                      setSelectedCard(null);
+                    }}
+                  />
                 </View>
               </View>
             </KeyboardAvoidingView>
