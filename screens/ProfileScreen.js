@@ -27,7 +27,7 @@ export default function ProfileScreen({ navigation }) {
     const [fullname, setFullname] = useState('');
     
     // State to store the fetched or newly uploaded avatar URL
-    const [avatarUrl, setAvatarUrl] = useState(''); 
+    const [avatarUrl, setAvatarUrl] = useState(null); 
     
     const [loading, setLoading] = useState(true);
     
@@ -39,6 +39,7 @@ export default function ProfileScreen({ navigation }) {
 
     // Logic: Determine the source for the Image component
     const avatarSource = useMemo(() => {
+        //console.log("avatarUrl:", avatarUrl);
         // If avatarUrl exists and is not null/empty, use it.
         if (avatarUrl && avatarUrl.length > 0) {
             return { uri: avatarUrl };
@@ -48,35 +49,9 @@ export default function ProfileScreen({ navigation }) {
 
     //------------------------------------------------------------------------------------------
     // HELPER: Converts a local URI (from ImagePicker) to a Blob for Supabase Storage upload
-    const uriToBlob = async (uri) => {
-        // Try the fetch().blob() approach first (works on web).
-        try {
-            const response = await fetch(uri);
-            if (response && typeof response.blob === 'function') {
-                return await response.blob();
-            }
-        } catch (e) {
-            // fall through to XHR fallback for React Native environments
-            console.warn('fetch().blob() failed, falling back to XHR for uriToBlob:', e.message || e);
-        }
-
-        // Fallback: use XMLHttpRequest to get a blob (works reliably on React Native)
-        return await new Promise((resolve, reject) => {
-            try {
-                const xhr = new XMLHttpRequest();
-                xhr.onload = function () {
-                    resolve(xhr.response);
-                };
-                xhr.onerror = function (err) {
-                    reject(new Error('uriToBlob XHR error'));
-                };
-                xhr.responseType = 'blob';
-                xhr.open('GET', uri, true);
-                xhr.send(null);
-            } catch (err) {
-                reject(err);
-            }
-        });
+    const uriToArrayBuffer = async (uri) => {
+        const response = await fetch(uri);
+        return await response.arrayBuffer();
     };
 
     //------------------------------------------------------------------------------------------
@@ -97,10 +72,10 @@ export default function ProfileScreen({ navigation }) {
             const fileExtension = (fileExtensionMatch ? fileExtensionMatch[1] : 'jpg').toLowerCase();
 
             // Storage path: 'avatars/user_id/timestamp.ext'
-            const filePath = `avatars/${userId}/${Date.now()}.${fileExtension}`; 
+            const filePath = `${userId}/${Date.now()}.${fileExtension}`; 
 
-            // 1. Convert URI to Blob
-            const imageBlob = await uriToBlob(uri);
+            // 1. Convert URI to ArrayBuffer  
+            const fileData = await uriToArrayBuffer(uri);
             let mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
             if (fileExtension === 'png') {
                 mimeType = 'image/png';
@@ -108,11 +83,11 @@ export default function ProfileScreen({ navigation }) {
                 mimeType = 'image/jpeg';
             }
 
-            // 2. Upload the blob to Supabase storage
+            // 2. Upload to Supabase storage
             const { error: uploadError } = await supabase.storage
                 .from('avatars') // Ensure this bucket exists in your Supabase project
-                .upload(filePath, imageBlob, {
-                    cacheControl: '3600',
+                .upload(filePath, fileData, {
+                    //cacheControl: '3600',
                     upsert: true,
                     contentType: mimeType
                 });
@@ -120,11 +95,12 @@ export default function ProfileScreen({ navigation }) {
             if (uploadError) throw uploadError;
 
             // 3. Get the public URL to store in the 'profiles' table
-            const { data: { publicUrl: url } } = supabase.storage
+            //const { data: { publicUrl: url } } = supabase.storage
+            const { data } = supabase.storage
                 .from('avatars')
                 .getPublicUrl(filePath);
             
-            publicUrl = url;
+            publicUrl = data.publicUrl;
             Alert.alert("Upload Success", "Image uploaded! Press 'Save Changes' to permanently update your profile.");
 
         } catch (error) {
@@ -316,10 +292,11 @@ export default function ProfileScreen({ navigation }) {
             >
                 {avatarUrl ? (
                     <Image 
-                        source={avatarSource} 
+                        //source={avatarSource} 
+                        source={{ uri: avatarUrl }}
                         style={styles.image} 
                         // Set avatarUrl to empty string if the image fails to load, triggering the icon fallback
-                        onError={() => setAvatarUrl('')}
+                        //onError={() => setAvatarUrl('')}
                     />
                 ) : (
                     // Fallback to Ionicons
