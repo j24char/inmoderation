@@ -355,7 +355,7 @@ export default function ProfileScreen({ navigation }) {
                         onChangeText={setTempUsername}
                     />
                     
-                    <View style={styles.buttonRow}>
+                    <View style={styles.buttonStack}>
                         <Pressable style={[styles.button, styles.saveButton]} onPress={updateProfile} disabled={loading}>
                             <Text style={styles.buttonText}>Save Changes</Text>
                         </Pressable>
@@ -404,7 +404,9 @@ const styles = StyleSheet.create({
         color: '#9c31ff',
     },
     imagePressable: {
+        width: 250,
         marginBottom: 30,
+        alignItems: 'center',
         position: 'relative',
     },
     image: {
@@ -430,10 +432,10 @@ const styles = StyleSheet.create({
     },
     viewGroup: {
         width: '100%',
-        maxWidth: 350,
+        maxWidth: 550,
         marginTop: 20,
     },
-        viewField: {
+    viewField: {
         marginBottom: 15,
         padding: 10,
         backgroundColor: '#fff',
@@ -468,8 +470,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         fontSize: 16,
     },
-    buttonRow: {
-        flexDirection: 'row',
+    buttonStack: {
+        flexDirection: 'column',
         justifyContent: 'space-between',
         marginTop: 10,
     },
@@ -486,9 +488,11 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         backgroundColor: '#9c31ff',
+        marginTop: 10,
     },
     cancelButton: {
         backgroundColor: '#ccc',
+        marginTop: 10,
     },
     buttonText: {
         color: '#ffffff',
@@ -497,21 +501,21 @@ const styles = StyleSheet.create({
     },
     separator: {
         height: 1,
-        width: '80%',
+        width: '100%',
         backgroundColor: '#ddd',
         marginVertical: 40,
     },
     signOutButton: {
         backgroundColor: '#ff3131ff',
         paddingVertical: 12,
-        paddingHorizontal: 30,
+        paddingHorizontal: 10,
         borderRadius: 25,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
-        width: '80%',
+        width: '100%',
         maxWidth: 300,
     },
 });
