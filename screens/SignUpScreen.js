@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
 
@@ -8,11 +8,21 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState('');
+  const [isOfAge, setIsOfAge] = useState(false);
+
+  const logoSource = Platform.OS === 'web' ? { uri: '/icon.png' } : require('../assets/icon.png');
 
   //------------------------------------------------------------------------------------------
   // Function: signUp
   // Description:  Attempts to create new user when all fields filled with unique info
   const signUp = async () => {
+    if (!isOfAge) {
+      Alert.alert(
+        'Age Requirement',
+        'You must be of legal drinking age to use this app.'
+      );
+      return;
+    }
     if (!email || !password || !username) {
       Alert.alert('Missing fields', 'Please fill in all fields.');
       return;
@@ -69,12 +79,21 @@ export default function LoginScreen({ navigation }) {
       // const { error: insertError } = await supabase
       //   .from('profiles')
       //   .insert([{ id: userId, username }]); // ensure 'id' is linked to auth user id
+      // const { error: insertError } = await supabase
+      //   .from('profiles')
+      //   .update({ display_name: username })
+      //   .eq('id', userId);
+      
       const { error: insertError } = await supabase
-        .from('profiles')
-        .update({ display_name: username })
-        .eq('id', userId);
+      .from('profiles')
+      .update({
+        display_name: username,
+        age_confirmed: true, // NEW FIELD
+      })
+      .eq('id', userId);
 
       if (insertError) throw insertError;
+
 
       // Success — prompt for email verification
       Alert.alert('Success!', 'Check your email for verification.');
@@ -91,9 +110,8 @@ export default function LoginScreen({ navigation }) {
   //------------------------------------------------------------------------------------------
   return (
     <SafeAreaView style={styles.container}>
-      <Image source={{uri: '/logo.png'}} style={styles.image} />
-      <Text style={styles.title}>InModeration</Text>
-      
+      <Image source={logoSource} style={styles.image} />
+            
       <Text>Username</Text>
       <TextInput
         style={styles.input}
@@ -119,10 +137,30 @@ export default function LoginScreen({ navigation }) {
         value={password}
         onChangeText={setPassword}
       />
-      
-      <Pressable style={styles.button} onPress={signUp}>
+      <Pressable
+        style={styles.ageRow}
+        onPress={() => setIsOfAge(prev => !prev)}
+      >
+        <View style={[styles.checkbox, isOfAge && styles.checkboxChecked]}>
+          {isOfAge && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+
+        <Text style={styles.ageText}>
+          I confirm that I am at least 21 years old and legally permitted to use this app.
+        </Text>
+      </Pressable>
+
+      <Pressable
+        style={[
+          styles.button,
+          !isOfAge && styles.buttonDisabled
+        ]}
+        onPress={signUp}
+        disabled={!isOfAge}
+      >
         <Text style={styles.buttonText}>Sign Up</Text>
       </Pressable>
+
       <View style={{ marginTop: 10 }} />
       
       
@@ -177,5 +215,39 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     marginBottom: 10,
     maxWidth: 300,
+  },
+  ageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 1,
+    borderColor: '#9c31ff',
+    marginRight: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  checkboxChecked: {
+    backgroundColor: '#9c31ff',
+  },
+
+  checkmark: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  ageText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#444',
+  },
+
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });
