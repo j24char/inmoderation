@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "InModeration",
     slug: "InModeration",
-    version: "1.0.1",
+    version: "1.0.2",
     orientation: "portrait",
     icon: "./assets/icon.png",
     assetBundlePatterns: ["**/*"],
