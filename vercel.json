@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/_expo/*", "destination": "/_expo/*" },
+    { "source": "/_expo/(.*)", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,
