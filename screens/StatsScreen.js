@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { processDailyTotals, averageLastNDays } from '../utils/dataUtils';
+import { processDailyTotals, averageLastNDays, daysSinceLastDrink } from '../utils/dataUtils';
 import { supabase } from '../supabase';
 
 export default function StatsScreen() {
@@ -152,6 +152,7 @@ export default function StatsScreen() {
   const collapsed = collapseByDay(mapped);
   const filled = fillMissingDays(collapsed);
   const { longestZero: longestZeroStreak, longestPositive: longestPositiveStreak } = computeStreaks(filled);
+  const currentSoberDays = daysSinceLastDrink(filled);
   const maxSingleDayTotal = processed.length ? Math.max(...processed.map(d => d.quantity)) : 0;
   //TODO: use a profile determined threshold
   const threshold = 5; // you can pass this in or compute it elsewhere
@@ -203,6 +204,10 @@ export default function StatsScreen() {
       <View style={styles.row}>
         <Text style={styles.label}>Longest Sober Streak:</Text>
         <Text style={styles.value}>{Number.isFinite(longestZeroStreak) ? longestZeroStreak.toFixed(1) : '0.0'}</Text>
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Current Sober Streak:</Text>
+        <Text style={styles.value}>{Number.isFinite(currentSoberDays) ? currentSoberDays.toFixed(1) : '0.0'}</Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Most Drinks in a Single Day:</Text>

@@ -4,12 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { DrinkChart } from '../components/DrinkChart.js';
-import { processDailyTotals, averageLastNDays } from '../utils/dataUtils';
+import { processDailyTotals, averageLastNDays, weekOverWeekChange, longestZeroStreak, daysSinceLastDrink } from '../utils/dataUtils';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function HomeScreen({ navigation }) {
-  const [drug1, setDrug1] = useState('');
-  const [drug2, setDrug2] = useState('');
   const [userIdShort, setUserIdShort] = useState('');
   const [username, setUsername] = useState('');
   const [results, setResults] = useState('');
@@ -29,14 +27,52 @@ export default function HomeScreen({ navigation }) {
     setModalVisible(true);
   };
 
+  //------------------------------------------------------------------------------------------
+  function trendInsight(avg7, avg30) {
+    if (!avg30 || avg30 === 0) return null;
+
+    const changePct = ((avg7 - avg30) / avg30) * 100;
+    const absChange = Math.abs(changePct);
+    const arrow = changePct > 0 ? '↑' : '↓';
+
+    if (avg7 < avg30 * 0.9) return `You're trending lower this week. ${arrow} ${absChange.toFixed(0)}%`;
+    if (avg7 > avg30 * 1.1) return `The last week was heavier than usual. ${arrow} ${absChange.toFixed(0)}%`;
+    return "Your drinking is steady this week.";
+  }
+
+
   // Calculate stats from cards
+  // const stats = React.useMemo(() => {
+  //   const processed = processDailyTotals(cards || []);
+  //   const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+  //   const avg30 = averageLastNDays(processed, 30);
+  //   return { total, avg30 };
+  // }, [cards]);
   const stats = React.useMemo(() => {
     const processed = processDailyTotals(cards || []);
-    const total = processed.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
-    const avg30 = averageLastNDays(processed, 30);
-    return { total, avg30 };
-  }, [cards]);
 
+    const total = processed.reduce(
+      (s, r) => s + (Number(r.quantity) || 0),
+      0
+    );
+
+    const avg7 = averageLastNDays(processed, 7);
+    const avg30 = averageLastNDays(processed, 30);
+
+    const wowChange = weekOverWeekChange(processed);
+    const longestStreak = longestZeroStreak(processed);
+    const daysSince = daysSinceLastDrink(processed);
+
+    return {
+      total,
+      avg7,
+      avg30,
+      wowChange,
+      longestStreak,
+      daysSince,
+    };
+  }, [cards]);
+  
   //------------------------------------------------------------------------------------------
   // Function: handleSave
   // Description:  Updates the database 
@@ -283,10 +319,17 @@ export default function HomeScreen({ navigation }) {
         ListHeaderComponent={
           <View style={styles.topContainer}>
             <DrinkChart refreshTrigger={refreshChartTrigger} /> 
+            <Text style={{ marginTop: 12, marginBottom: 12,fontStyle: 'italic', color: '#333' }}>
+              {trendInsight(stats.avg7, stats.avg30) || 'Log some drinks to see insights here.'}
+            </Text>
             <View style={styles.statRow}>
-              <View style={[styles.statCard, { marginRight: 8 }]}>
+              {/* <View style={[styles.statCard, { marginRight: 8 }]}>
                 <Text style={styles.statTitle}>Total Drinks</Text>
                 <Text style={styles.statValue}>{stats.total}</Text>
+              </View> */}
+              <View style={[styles.statCard, { marginRight: 8 }]}>
+                <Text style={styles.statTitle}>Avg Drinks/Day Last 7 days</Text>
+                <Text style={styles.statValue}>{Number.isFinite(stats.avg7) ? stats.avg7.toFixed(1) : '0.0'}</Text>
               </View>
               <View style={[styles.statCard, { marginLeft: 8 }]}>
                 <Text style={styles.statTitle}>Avg Drinks/Day Last 30 days</Text>
@@ -454,10 +497,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 20,
   },
-  scrollContainer: {
-    padding: 16,
-    // Makes the scroll content stretch full width
-  },
   title: {
     fontSize: 22,
     marginBottom: 20,
@@ -597,7 +636,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fefefe',
     paddingVertical: 12,
     paddingHorizontal: 10,
     borderRadius: 10,
@@ -607,7 +646,7 @@ const styles = StyleSheet.create({
   },
   statTitle: {
     fontSize: 12,
-    color: '#777',
+    color: '#333',
     marginBottom: 6,
   },
   statValue: {
