@@ -111,7 +111,8 @@ export default function StatsScreen() {
     const msDay = 24 * 60 * 60 * 1000;
 
     let current = new Date(sortedDays[0].date + "T00:00:00Z");
-    let end = new Date(sortedDays[sortedDays.length - 1].date + "T00:00:00Z");
+    let end = new Date();
+    end.setUTCHours(0, 0, 0, 0);
 
     const dayMap = new Map(sortedDays.map((d) => [d.date, d.quantity]));
 
@@ -157,7 +158,8 @@ export default function StatsScreen() {
   //TODO: use a profile determined threshold
   const threshold = 5; // you can pass this in or compute it elsewhere
   const daysAboveThreshold = processed.filter(d => d.quantity > threshold).length;
-
+  const isSoberStreak = longestZeroStreak > 0 && longestZeroStreak === currentSoberDays;
+  const isDrinkingStreak = longestPositiveStreak > 0 && longestPositiveStreak === currentSoberDays;
 
   // Average drinks per week since the start of the data
   let avgPerWeek = 0;
@@ -199,15 +201,30 @@ export default function StatsScreen() {
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Longest Drinking Streak:</Text>
-        <Text style={styles.value}>{Number.isFinite(longestPositiveStreak) ? longestPositiveStreak.toFixed(1) : '0.0'}</Text>
+        <Text style={[
+          styles.value,
+          isDrinkingStreak && { color: 'red', fontWeight: 'bold' }
+        ]}>
+          {Number.isFinite(longestPositiveStreak) ? longestPositiveStreak.toFixed(1) : '0.0'}
+        </Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Longest Sober Streak:</Text>
-        <Text style={styles.value}>{Number.isFinite(longestZeroStreak) ? longestZeroStreak.toFixed(1) : '0.0'}</Text>
+        <Text style={[
+          styles.value, 
+          isSoberStreak && { color: 'green', fontWeight: 'bold' }
+        ]}>
+          {Number.isFinite(longestZeroStreak) ? longestZeroStreak.toFixed(1) : '0.0'}
+        </Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Current Sober Streak:</Text>
-        <Text style={styles.value}>{Number.isFinite(currentSoberDays) ? currentSoberDays.toFixed(1) : '0.0'}</Text>
+        <Text style={[
+          styles.value, 
+          isSoberStreak && { color: 'green', fontWeight: 'bold' }
+        ]}>
+          {Number.isFinite(currentSoberDays) ? currentSoberDays.toFixed(1) : '0.0'}
+        </Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Most Drinks in a Single Day:</Text>
